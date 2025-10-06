@@ -1,0 +1,38 @@
+name: Test unpinned dependencies
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build_wheels:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.12"]
+
+    name: Build and test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    environment: CI
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Create venv
+      run: |
+        uv venv --python ${{ matrix.python-version }}
+
+    - name: Install package with dev deps
+      run: |
+        uv pip install --python .venv/bin/python -e .[dev]
+        uv pip freeze --python .venv/bin/python
+
+    - name: Pytest
+      run: |
+        uv run --no-project python -m pytest
