@@ -37,7 +37,9 @@ PYBIND11_MODULE(_bindings, m) {
         .value("VR_INVALIDROW", VR_INVALIDROW)
         .value("VR_INVALIDCOL", VR_INVALIDCOL);
 
-    // Only meant to be used by the PyVar class
+    // The VAR type is exposed to Python, but only indirectly through an
+    // attribute of the PyVar class, which is why we name the class
+    // "_VAR".
     py::class_<VAR>(m, "_VAR")
         .def_readwrite("type", &VAR::type)
         .def_readwrite("lVal", &VAR::lVal)
@@ -47,12 +49,15 @@ PYBIND11_MODULE(_bindings, m) {
                 return std::string(v.sVal ? v.sVal : "");
             },
             [](VAR& v, const std::string& val) {  // setter
-                v.sVal = strdup(val.c_str());  // needs to be freed!
+                v.sVal = strdup(val.c_str());  // needs to be freed, which is done in VarClear
             })
         .def_readwrite("vresult", &VAR::vresult);
 
     py::class_<PyVar>(m, "PyVar")
         .def(py::init<>())
+        // For the following readwrite attribute to work, pybind11 needs to
+        // know how to expose VAR as a Python object, which is why we defined
+        // the class above.
         .def_readwrite("var", &PyVar::var);
 
     py::class_<IPhreeqcWrapper>(m, "PyIPhreeqc")

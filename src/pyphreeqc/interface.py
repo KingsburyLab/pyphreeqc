@@ -8,7 +8,7 @@ class Var:
     def __init__(self, value: Any | None = None):
         self._var = PyVar()
         self._var.var.type = PY_VAR_TYPE.TT_EMPTY
-        self.value = value
+        self.value = value  # will invoke setter
 
     @property
     def value(self) -> Any:
@@ -28,6 +28,11 @@ class Var:
 
     @value.setter
     def value(self, value) -> None:
+        # If we were previously holding a string, we need to free it by
+        # creating a new PyVar
+        if self._var.var.type == PY_VAR_TYPE.TT_STRING:
+            self._var = PyVar()
+
         if isinstance(value, PY_VRESULT):
             self._var.var.type = PY_VAR_TYPE.TT_ERROR
             self._var.var.vresult = value
@@ -58,7 +63,7 @@ class Phreeqc:
         """Delegate attribute access to the underlying PyIPhreeqc instance."""
         if hasattr(self._ext, item):
             return getattr(self._ext, item)
-        raise AttributeError(f"{type(self).__name__} has no attribute '{item}'")
+        raise AttributeError(f"Phreeqc has no attribute '{item}'")
 
     def __getitem__(self, item) -> Any:
         if not isinstance(item, tuple):
