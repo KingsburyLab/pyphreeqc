@@ -31,6 +31,6 @@ pybind11_add_module(_bindings src/bindings.cpp)
 target_compile_definitions(_bindings
                            PRIVATE VERSION_INFO=${PROJECT_VERSION})
 
-target_link_libraries(_bindings PRIVATE ${IPHREEQC_BUILD_DIR}/libIPhreeqc.a)
+target_link_libraries(_bindings PRIVATE IPhreeqc)
 
 install(TARGETS _bindings LIBRARY DESTINATION pyphreeqc)
