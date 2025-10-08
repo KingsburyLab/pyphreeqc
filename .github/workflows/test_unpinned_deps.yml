@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12"]
 
     name: Build and test on ${{ matrix.os }}
@@ -30,8 +30,8 @@ jobs:
 
     - name: Install package with dev deps
       run: |
-        uv pip install --python .venv/bin/python -e .[dev]
-        uv pip freeze --python .venv/bin/python
+        uv pip install -e .[dev]
+        uv pip freeze
 
     - name: Pytest
       run: |
