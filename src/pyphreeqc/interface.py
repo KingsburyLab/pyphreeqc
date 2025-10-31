@@ -1,4 +1,5 @@
 from typing import Any
+from pathlib import Path
 from pyphreeqc._bindings import PyVar, PY_VAR_TYPE, PY_VRESULT, PyIPhreeqc
 
 IPhreeqc = PyIPhreeqc
@@ -52,8 +53,13 @@ class Var:
 
 
 class Phreeqc:
-    def __init__(self):
+    def __init__(self, database: str = "phreeqc.dat", database_directory: Path | None = None):
         self._ext = PyIPhreeqc()
+
+        if database_directory is None:
+            database_directory = Path(__file__).parent / "database"
+        self._ext.load_database(str(database_directory / database))
+
         # TODO: Is VAR the common denominator for most operations?
         # Here we create one and modify it in operations instead of having
         # the caller create new VARs per operation.
