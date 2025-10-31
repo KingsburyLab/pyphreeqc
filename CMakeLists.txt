@@ -24,6 +24,18 @@ add_subdirectory(${IPHREEQC_DIR} ${IPHREEQC_BUILD_DIR})
 set_target_properties(IPhreeqc PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # -------------------------------------------------------
 
+# -------------------------------------------------------
+# IPhreeqc databases
+# -------------------------------------------------------
+# Till we find a way to extract artifacts from IPhreeqc's install folder
+# through scikit-build-core, we define a COMPONENT that allows us to
+# copy the database files.
+set(IPHREEQC_DATABASE_DIR   ${IPHREEQC_BASE}/database)
+install(DIRECTORY
+      "${IPHREEQC_DATABASE_DIR}"
+      DESTINATION pyphreeqc COMPONENT iphreeqc_database)
+# -------------------------------------------------------
+
 include_directories(${IPHREEQC_INCLUDE_DIRS})
 
 pybind11_add_module(_bindings src/bindings.cpp)

@@ -3,15 +3,21 @@ import numpy as np
 from pyphreeqc.interface import Phreeqc
 
 
-def test_load_database():
-    phreeqc = Phreeqc()
-    phreeqc.load_database(str(Path(__file__).parent / "phreeqc.dat"))
+def test_load_database_internal():
+    # `phreeqc.dat` is included with the package, so we don't need to specify
+    # `database_directory`.
+    phreeqc = Phreeqc(database="phreeqc.dat")
+
+
+def test_load_database_external():
+    # We can always load an external database by specifying
+    # `database_directory`.
+    phreeqc = Phreeqc(database="phreeqc.dat", database_directory=Path(__file__).parent)
 
 
 def test_run():
     # TODO: Break this down into individual tests
-    phreeqc = Phreeqc()
-    phreeqc.load_database(str(Path(__file__).parent / "phreeqc.dat"))
+    phreeqc = Phreeqc("phreeqc.dat")
 
     phreeqc.run_string("""
         TITLE Example 11.--Transport and ion exchange.
