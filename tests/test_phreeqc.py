@@ -1,6 +1,6 @@
 from pathlib import Path
 import numpy as np
-from pyphreeqc.interface import Phreeqc
+from pyphreeqc import Phreeqc
 
 
 def test_load_database_internal():
@@ -15,8 +15,8 @@ def test_load_database_external():
     phreeqc = Phreeqc(database="phreeqc.dat", database_directory=Path(__file__).parent)
 
 
-def test_run():
-    # TODO: Break this down into individual tests
+def test_run_sample():
+    # Run a generic script string and capture output
     phreeqc = Phreeqc("phreeqc.dat")
 
     phreeqc.run_string("""
@@ -90,3 +90,24 @@ def test_run():
              0.0, 0.0, 0.00020000000000012212, 0.0012000000000010212,
              0.0010000000000005584])
     )
+
+
+def test_run_get_activity():
+    phreeqc = Phreeqc()
+
+    phreeqc.run_string("""
+        SOLUTION 0
+          temp 25.0
+          units mol/kgw
+          pH 7.0
+          pe 8.5
+          redox pe
+          water 0.9970480319717386
+        SELECTED_OUTPUT
+          -activities H+
+        SAVE SOLUTION 0
+        END 
+    """)
+
+    assert phreeqc[0] == ['sim', 'state', 'soln', 'dist_x', 'time', 'step', 'pH', 'pe', 'la_H+']
+    assert phreeqc[1] == [1, 'i_soln', 0, -99.0, -99.0, -99, 7.0, 8.5, -6.999933875453977]

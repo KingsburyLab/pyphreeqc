@@ -1,55 +1,8 @@
 from typing import Any
 from pathlib import Path
-from pyphreeqc._bindings import PyVar, PY_VAR_TYPE, PY_VRESULT, PyIPhreeqc
-
-IPhreeqc = PyIPhreeqc
-
-
-class Var:
-    def __init__(self, value: Any | None = None):
-        self._var = PyVar()
-        self._var.var.type = PY_VAR_TYPE.TT_EMPTY
-        self.value = value  # will invoke setter
-
-    @property
-    def value(self) -> Any:
-        match self._var.var.type:
-            case PY_VAR_TYPE.TT_EMPTY:
-                return None
-            case PY_VAR_TYPE.TT_ERROR:
-                return self._var.var.vresult
-            case PY_VAR_TYPE.TT_LONG:
-                return self._var.var.lVal
-            case PY_VAR_TYPE.TT_DOUBLE:
-                return self._var.var.dVal
-            case PY_VAR_TYPE.TT_STRING:
-                return self._var.var.sVal
-            case _:
-                raise RuntimeError("Unknown type")
-
-    @value.setter
-    def value(self, value) -> None:
-        # If we were previously holding a string, we need to free it by
-        # creating a new PyVar
-        if self._var.var.type == PY_VAR_TYPE.TT_STRING:
-            self._var = PyVar()
-
-        if isinstance(value, PY_VRESULT):
-            self._var.var.type = PY_VAR_TYPE.TT_ERROR
-            self._var.var.vresult = value
-        elif isinstance(value, int):
-            self._var.var.type = PY_VAR_TYPE.TT_LONG
-            self._var.var.lVal = value
-        elif isinstance(value, float):
-            self._var.var.type = PY_VAR_TYPE.TT_DOUBLE
-            self._var.var.dVal = value
-        elif isinstance(value, str):
-            self._var.var.type = PY_VAR_TYPE.TT_STRING
-            self._var.var.sVal = value
-        elif value is None:
-            self._var.var.type = PY_VAR_TYPE.TT_EMPTY
-        else:
-            raise RuntimeError("Unknown type")
+from pyphreeqc._bindings import PyIPhreeqc
+from pyphreeqc.var import Var
+from pyphreeqc.solution import Solution
 
 
 class Phreeqc:
@@ -60,10 +13,12 @@ class Phreeqc:
             database_directory = Path(__file__).parent / "database"
         self._ext.load_database(str(database_directory / database))
 
+        self._solutions: list[Solution] = []
+
         # TODO: Is VAR the common denominator for most operations?
         # Here we create one and modify it in operations instead of having
         # the caller create new VARs per operation.
-        self._var = Var()
+        self._var: Var = Var()
 
     def __getattr__(self, item) -> None:
         """Delegate attribute access to the underlying PyIPhreeqc instance."""
@@ -109,3 +64,6 @@ class Phreeqc:
     @property
     def shape(self) -> tuple[int, int]:
         return self.get_selected_output_row_count(), self.get_selected_output_column_count()
+
+    def add_solution(self, solution_dict: dict) -> None:
+        pass

@@ -1,6 +1,5 @@
-from .interface import IPhreeqc, Var
+from .core import Phreeqc
 
 __all__ = [
-    "IPhreeqc",
-    "Var"
+    "Phreeqc"
 ]

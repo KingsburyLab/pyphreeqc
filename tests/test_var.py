@@ -1,5 +1,5 @@
 from pytest import approx
-from pyphreeqc.interface import Var
+from pyphreeqc.var import Var
 from pyphreeqc._bindings import PY_VRESULT
 
 
