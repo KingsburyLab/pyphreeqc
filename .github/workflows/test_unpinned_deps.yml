@@ -35,4 +35,4 @@ jobs:
 
     - name: Pytest
       run: |
-        uv run python -m pytest
+        uv run --no-project python -m pytest
