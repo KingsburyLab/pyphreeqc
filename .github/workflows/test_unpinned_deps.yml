@@ -30,7 +30,7 @@ jobs:
 
     - name: Install package with dev deps
       run: |
-        uv pip install -e .[dev]
+        uv pip install .[dev]
         uv pip freeze
 
     - name: Pytest
