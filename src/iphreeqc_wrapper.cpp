@@ -54,6 +54,14 @@ public:
         return GetComponent(id, i);
     }
 
+    std::string get_dump_string() {
+        return GetDumpString(id);
+    }
+
+    int set_dump_string_on(int i) {
+        return SetDumpStringOn(id, i);
+    }
+
 private:
     int id;
 };

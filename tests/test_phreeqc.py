@@ -73,18 +73,18 @@ def test_run_sample():
     assert phreeqc.get_selected_output_column_count() == 8
 
     # We can get values at a specific index, or a slice
-    assert phreeqc[0, 0] == "cb"
-    assert phreeqc[0, 1:4] == ["H", "O", "Ca"]
-    assert phreeqc[0, 5:] == ["K", "N", "Na"]
+    assert phreeqc.output[0, 0] == "cb"
+    assert phreeqc.output[0, 1:4] == ["H", "O", "Ca"]
+    assert phreeqc.output[0, 5:] == ["K", "N", "Na"]
 
     assert np.allclose(
-        phreeqc[1, :],
+        phreeqc.output[1, :],
         np.array([2.979292808179192e-18, 111.01243360409575, 55.50675186622646,
                   0.0006000000000000017, 0.0012000000000000005, 0.0, 0.0, 0.0])
     )
 
     assert np.allclose(
-        phreeqc[2],  # single indices are also fine
+        phreeqc.output[2],  # single indices are also fine
         np.array(
             [-3.395954270633993e-16, 111.01243360154359, 55.510351938877264,
              0.0, 0.0, 0.00020000000000012212, 0.0012000000000010212,
@@ -92,9 +92,9 @@ def test_run_sample():
     )
 
 
-def test_run_get_activity():
+def test_run_simple():
     phreeqc = Phreeqc()
-
+    phreeqc.set_dump_string_on(1)
     phreeqc.run_string("""
         SOLUTION 0
           temp 25.0
@@ -103,11 +103,36 @@ def test_run_get_activity():
           pe 8.5
           redox pe
           water 0.9970480319717386
-        SELECTED_OUTPUT
-          -activities H+
         SAVE SOLUTION 0
-        END 
+        SELECTED_OUTPUT
+          -activities H+        
+        END     
     """)
+    assert phreeqc.output.shape == (2, 9)
 
-    assert phreeqc[0] == ['sim', 'state', 'soln', 'dist_x', 'time', 'step', 'pH', 'pe', 'la_H+']
-    assert phreeqc[1] == [1, 'i_soln', 0, -99.0, -99.0, -99, 7.0, 8.5, -6.999933875453977]
+
+def test_run_simple_delete():
+    phreeqc = Phreeqc()
+    phreeqc.set_dump_string_on(1)
+    phreeqc.run_string("""
+        SOLUTION 0
+          temp 25.0
+          units mol/kgw
+          pH 7.0
+          pe 8.5
+          redox pe
+          water 0.9970480319717386
+        SAVE SOLUTION 0
+        SELECTED_OUTPUT
+          -activities H+        
+        END     
+    """)
+    assert phreeqc.output.shape == (2, 9)
+    assert phreeqc.output[0] == ['sim', 'state', 'soln', 'dist_x', 'time', 'step', 'pH', 'pe', 'la_H+']
+    assert phreeqc.output[1] == [1, 'i_soln', 0, -99.0, -99.0, -99, 7.0, 8.5, -6.999933875453977]
+
+def test_run_add_solution():
+    phreeqc = Phreeqc()
+    phreeqc.add_solution({'pH': 7.0, 'pe': 8.5, 'redox': 'pe', 'temp': 25.0, 'units': 'mol/kgw', 'water': 0.9970480319717386})
+    assert len(phreeqc) == 1
+

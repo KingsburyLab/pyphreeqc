@@ -20,11 +20,39 @@ class Phreeqc:
         # the caller create new VARs per operation.
         self._var: Var = Var()
 
+        self.output = PhreeqcOutput(self)
+
+    def __len__(self):
+        return len(self._solutions)
+
     def __getattr__(self, item) -> None:
         """Delegate attribute access to the underlying PyIPhreeqc instance."""
         if hasattr(self._ext, item):
             return getattr(self._ext, item)
         raise AttributeError(f"Phreeqc has no attribute '{item}'")
+
+    def add_solution(self, solution_dict: dict) -> None:
+        solution = Solution(solution_dict)
+        index = len(self)
+        self.run_string(f"""
+            SOLUTION {index}
+              {solution}        
+            SAVE SOLUTION {index}
+            END        
+        """)
+        self._solutions.append(solution)
+
+    def remove_solution(self, index: int) -> Solution:
+        self.run_string(f"""
+            DELETE 
+              -solution {index}
+        """)
+        return self._solutions.pop(index)
+
+
+class PhreeqcOutput:
+    def __init__(self, phreeqc: Phreeqc):
+        self._phreeqc = phreeqc
 
     def __getitem__(self, item) -> Any:
         if not isinstance(item, tuple):
@@ -52,8 +80,8 @@ class Phreeqc:
         for row in row_indices:
             row_values = []
             for col in col_indices:
-                self._ext.get_value(row, col, self._var._var.var)
-                row_values.append(self._var.value)
+                self._phreeqc._ext.get_value(row, col, self._phreeqc._var._var.var)
+                row_values.append(self._phreeqc._var.value)
             result.append(
                 row_values if len(col_indices) > 1 else row_values[0])
 
@@ -63,7 +91,4 @@ class Phreeqc:
 
     @property
     def shape(self) -> tuple[int, int]:
-        return self.get_selected_output_row_count(), self.get_selected_output_column_count()
-
-    def add_solution(self, solution_dict: dict) -> None:
-        pass
+        return self._phreeqc.get_selected_output_row_count(), self._phreeqc.get_selected_output_column_count()
