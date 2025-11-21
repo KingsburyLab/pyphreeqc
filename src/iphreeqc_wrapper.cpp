@@ -62,6 +62,14 @@ public:
         return SetDumpStringOn(id, i);
     }
 
+    std::string get_log_string() {
+        return GetLogString(id);
+    }
+
+    int set_log_string_on(int i) {
+        return SetLogStringOn(id, i);
+    }
+
 private:
     int id;
 };

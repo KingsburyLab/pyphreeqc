@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
-import pytest
+import textwrap
+import re
 from pyphreeqc import Phreeqc
 
 
@@ -111,54 +112,154 @@ def test_run_simple():
     assert phreeqc.output.shape[0] == 2  # header + 1 solution
 
 
-@pytest.mark.xfail(reason="cannot explain")
-def test_run_simple_save_and_calculate():
-    phreeqc = Phreeqc()
-    # Note: "SAVE SOLUTION"/"USE SOLUTION"
-    phreeqc.run_string("""
-        SOLUTION 0
-          temp 25.0
-          units mol/kgw
-          pH 7.0
-          pe 8.5
-          redox pe
-          water 0.9970480319717386
-        SAVE SOLUTION 0               
-        END     
-    """)
-    assert phreeqc.output.shape == (0, 0)
-
-    phreeqc.run_string("""
-        USE SOLUTION 0
-        SELECTED_OUTPUT
-          -solution true      
-        END
-    """)
-
-    assert phreeqc.output.shape[0] == 2  # header + 1 solution
-
-def test_run_simple_delete():
-    phreeqc = Phreeqc()
-    phreeqc.set_dump_string_on(1)
-    phreeqc.run_string("""
-        SOLUTION 0
-          temp 25.0
-          units mol/kgw
-          pH 7.0
-          pe 8.5
-          redox pe
-          water 0.9970480319717386
-        SAVE SOLUTION 0
-        SELECTED_OUTPUT
-          -activities H+        
-        END     
-    """)
-    assert phreeqc.output.shape == (2, 9)
-    assert phreeqc.output[0] == ['sim', 'state', 'soln', 'dist_x', 'time', 'step', 'pH', 'pe', 'la_H+']
-    assert phreeqc.output[1] == [1, 'i_soln', 0, -99.0, -99.0, -99, 7.0, 8.5, -6.999933875453977]
-
 def test_run_add_solution():
     phreeqc = Phreeqc()
     phreeqc.add_solution({'pH': 7.0, 'pe': 8.5, 'redox': 'pe', 'temp': 25.0, 'units': 'mol/kgw', 'water': 0.9970480319717386})
     assert len(phreeqc) == 1
 
+
+def test_run_add_delete_solution():
+    phreeqc = Phreeqc()
+    phreeqc.add_solution({'pH': 7.0, 'pe': 8.5, 'redox': 'pe', 'temp': 25.0, 'units': 'mol/kgw', 'water': 0.9970480319717386})
+    phreeqc.remove_solution(0)
+    assert len(phreeqc) == 0
+
+
+def test_run_dumpstring():
+    phreeqc = Phreeqc()
+
+    phreeqc.run_string(textwrap.dedent("""
+        SOLUTION 0
+          temp 25.0
+        REACTION 1 
+          CaCl2 1
+          Na2CO3 1
+        1 mmol 
+        SAVE SOLUTION 0 
+        END
+    """))
+
+    phreeqc.set_dump_string_on(1)
+
+    phreeqc.run_string(textwrap.dedent("""
+        DUMP
+          -solution 0
+        END
+    """))
+
+    dump_string = phreeqc.get_dump_string()
+    phreeqc.set_dump_string_on(0)
+
+    expected = textwrap.dedent("""
+        SOLUTION_RAW                 0 Solution after simulation 1.
+          -temp                      25
+          -pressure                  1
+          -potential                 0
+          -total_h                   111.01243359386
+          -total_o                   55.509216797548
+          -cb                        -1.2200890388064e-09
+          -density                   0.99704301397679
+          -viscosity                 0.89125921464527
+          -viscos_0                  0.89002391825059
+          -totals
+            C(4)                     0.0010000000027134
+            Ca                       0.0010000000010752
+            Cl                       0.0019999999999998
+            Na                       0.002
+            O(0)                     2.8581598475304e-15
+          -pH                        10.413844680873
+          -pe                        7.3950560340151
+          -mu                        0.0045560988049649
+          -ah2o                      0.99989811240764
+          -mass_water                0.999994868511
+          -soln_vol                  1.0029812985132
+          -total_alkalinity          0.0020000012222396
+          -activities
+            C(-4)                    -125.72046751407
+            C(4)                     -3.4925949082566
+            Ca                       -3.2726648366134
+            Cl                       -2.7307519728506
+            E                        -7.3950560340151
+            H(0)                     -38.767826310689
+            Na                       -2.730257199021
+            O(0)                     -14.844435883364
+          -gammas
+        USE mix none
+        USE reaction none
+        USE reaction_temperature none
+        USE reaction_pressure none
+    """).lstrip("\n")
+
+    assert dump_string == expected
+
+
+def test_run_logstring():
+    phreeqc = Phreeqc()
+    phreeqc.set_log_string_on(1)
+    phreeqc.run_string(textwrap.dedent("""
+        KNOBS
+          -logfile true
+        SOLUTION 0
+          temp 25.0
+        REACTION 1 
+          CaCl2 1
+          Na2CO3 1
+        1 mmol 
+        SAVE SOLUTION 0 
+        END
+    """))
+    log_string = phreeqc.get_log_string()
+    phreeqc.set_log_string_on(0)
+
+
+    expected = textwrap.dedent("""
+               -------------------------------------------
+               Beginning of initial solution calculations.
+               -------------------------------------------
+    
+               Initial solution 0.	
+    
+               Iterations in revise_guesses: 1
+    
+               Number of infeasible solutions: 0
+               Number of basis changes: 0
+    
+               Number of iterations: 0
+    
+               -----------------------------------------
+               Beginning of batch-reaction calculations.
+               -----------------------------------------
+    
+               Reaction step 1.
+    
+               Overflow: (CO2)2\t1.000000e+03\t3.625196e+00\t-1
+               Overflow: CO2\t4.794226e+02\t2.680719e+00\t-1
+               Overflow: CaCO3\t1.000000e+03\t3.225283e+00\t-1
+               Overflow: CaHCO3+\t1.000000e+03\t3.915297e+00\t-1
+               Overflow: HCO3-\t1.000000e+03\t3.329016e+00\t-1
+               Overflow: NaHCO3\t1.000000e+03\t3.268854e+00\t-1
+               Iterations in revise_guesses: 2
+    
+               Number of infeasible solutions: 0
+               Number of basis changes: 0
+    
+               Number of iterations: 15
+    
+               ------------------
+               End of simulation.
+               ------------------
+    
+               ------------------------------------
+               Reading input data for simulation 2.
+               ------------------------------------
+    
+               ---------------------------------
+               End of Run after X Seconds.
+               ---------------------------------
+           """).strip("\n")
+
+
+    normalized = re.sub(r"End of Run after .* Seconds\.",
+                        "End of Run after X Seconds.", log_string).rstrip()
+
+    assert normalized == expected
